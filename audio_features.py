@@ -102,6 +102,20 @@ class AudioFeatures:
                                              x_axis='time', ax=ax)
         return wave_plot
 
+    def create_magnitude_plot(self, audio_signal=None, sample_rate=None, sample_start=0, sample_end=None, f_ratio=1, ax=None):
+        if sample_end is None:
+            sample_end = self.num_samples
+
+        sp = np.fft.fft(audio_signal[sample_start:sample_end])
+        mag = np.absolute(sp)
+        f = np.linspace(0, sample_rate, len(mag))
+        f_bins = int(len(mag)*f_ratio)
+
+        ax.set_xlabel('Hz)')
+        magnitude_plot = ax.plot(f[:f_bins], mag[:f_bins])
+
+        return magnitude_plot
+
     def create_spectrogram(self, audio_signal=None, sample_rate=None, n_fft=2048, hop_length=512, sample_start=0,
                            sample_end=None, ax=None):
         if sample_end is None:
