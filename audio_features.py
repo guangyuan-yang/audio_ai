@@ -1,12 +1,25 @@
 import os
 import sys
 import numpy as np
-import scipy as sp
+from scipy import stats
 import librosa
-import librosa.display
+import librosa.display as lib_disp
 
 
 class AudioFeatures:
+    @staticmethod
+    def calculate_feature_stats(feature_name, feature_value):
+        feature_stats = dict()
+        feature_stats[f'{feature_name}_mean'] = np.mean(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_std'] = np.std(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_skew'] = stats.skew(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_kurtosis'] = stats.kurtosis(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_median'] = np.median(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_min'] = np.min(feature_value, axis=1).item()
+        feature_stats[f'{feature_name}_max'] = np.max(feature_value, axis=1).item()
+
+        return feature_stats
+
     def __init__(self, filename=None, sample_rate=22050, duration=29):
         self.filename = os.path.abspath(os.path.expanduser(filename))
         self.sample_rate = sample_rate
@@ -52,6 +65,7 @@ class AudioFeatures:
     def extract_rsme(self, audio_signal=None, frame_length=2048, hop_length=512, sample_start=0, sample_end=None):
         if sample_end is None:
             sample_end = self.num_samples
+
         rmse = librosa.feature.rms(y=audio_signal[sample_start:sample_end], frame_length=frame_length,
                                    hop_length=hop_length)
         return rmse
@@ -66,6 +80,8 @@ class AudioFeatures:
 
     def extract_spectral_centroid(self, audio_signal=None, sample_rate=None, n_fft=2048, hop_length=512, sample_start=0,
                                   sample_end=None):
+        if sample_rate is None:
+            sample_rate = self.sample_rate
         if sample_end is None:
             sample_end = self.num_samples
         spectral_centroid = librosa.feature.spectral_centroid(y=audio_signal[sample_start:sample_end], sr=sample_rate,
@@ -95,45 +111,45 @@ class AudioFeatures:
         spectral_flux = librosa.feature.spectral_bandwidth(y=audio_signal[sample_start:sample_end], sr=sample_rate)
         return spectral_flux
 
-    def create_wave_plot(self, audio_signal=None, sample_rate=None, sample_start=0, sample_end=None, ax=None):
-        if sample_end is None:
-            sample_end = self.num_samples
-        wave_plot = librosa.display.waveplot(audio_signal[sample_start:sample_end], sr=sample_rate, alpha=0.5,
-                                             x_axis='time', ax=ax)
+    def create_wave_plot(self, audio_signal=None, sample_rate=None, sample_start=0, ax=None):
+
+        wave_plot = lib_disp.waveplot(audio_signal[sample_start:self.num_samples], sr=sample_rate, alpha=0.5,
+                                      x_axis='time', ax=ax)
         return wave_plot
 
-    def create_magnitude_plot(self, audio_signal=None, sample_rate=None, sample_start=0, sample_end=None, f_ratio=0.5, ax=None):
+    def create_magnitude_plot(self, audio_signal=None, sample_rate=None, sample_start=0, sample_end=None, f_ratio=0.5,
+                              ax=None):
         if sample_end is None:
             sample_end = self.num_samples
 
         sp = np.fft.fft(audio_signal[sample_start:sample_end])
         mag = np.absolute(sp)
         f = np.linspace(0, sample_rate, len(mag))
-        f_bins = int(len(mag)*f_ratio)
+        f_bins = int(len(mag) * f_ratio)
 
         ax.set_xlabel('Hz')
         magnitude_plot = ax.plot(f[:f_bins], mag[:f_bins])
 
         return magnitude_plot
 
-    def create_spectrogram(self, audio_signal=None, sample_rate=None, n_fft=2048, hop_length=512, sample_start=0,
+    def create_spectrogram(self, audio_signal=None, sample_rate=None, sample_start=0,
                            sample_end=None, ax=None):
         if sample_end is None:
             sample_end = self.num_samples
         audio_stft = librosa.stft(audio_signal[sample_start:sample_end])
         audio_db = librosa.amplitude_to_db(np.abs(audio_stft), ref=np.max)
-        spectrogram = librosa.display.specshow(audio_db, sr=sample_rate, y_axis='linear', x_axis='time', ax=ax)
+        spectrogram = lib_disp.specshow(audio_db, sr=sample_rate, y_axis='linear', x_axis='time', ax=ax)
         return spectrogram
 
-    def create_melspec_plot(self, audio_signal=None, sample_rate=None, n_fft=2048, hop_length=512, n_mels=128,
+    def create_melspec_plot(self, audio_signal=None, sample_rate=None, n_fft=2048, hop_length=512,
                             sample_start=0,
                             sample_end=None, ax=None):
         if sample_end is None:
             sample_end = self.num_samples
         mel = librosa.feature.melspectrogram(audio_signal[sample_start:sample_end], sr=sample_rate, n_fft=n_fft,
                                              hop_length=hop_length)
-        mel_dB = librosa.power_to_db(mel, ref=np.max)
-        melspec_plot = librosa.display.specshow(mel_dB, sr=sample_rate, x_axis='time', y_axis='mel', ax=ax)
+        mel_db = librosa.power_to_db(mel, ref=np.max)
+        melspec_plot = lib_disp.specshow(mel_db, sr=sample_rate, x_axis='time', y_axis='mel', ax=ax)
 
         return melspec_plot
 
@@ -146,17 +162,5 @@ class AudioFeatures:
                                     n_fft=n_fft,
                                     n_mfcc=n_mfcc,
                                     hop_length=hop_length)
-        mfcc_plot = librosa.display.specshow(mfcc, sr=sample_rate, x_axis='time', ax=ax)
+        mfcc_plot = lib_disp.specshow(mfcc, sr=sample_rate, x_axis='time', ax=ax)
         return mfcc_plot
-
-    def calculate_feature_stats(self, feature_name, feature_value):
-        feature_stats = dict()
-        feature_stats[f'{feature_name}_mean'] = np.mean(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_std'] = np.std(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_skew'] = sp.stats.skew(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_kurtosis'] = sp.stats.kurtosis(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_median'] = np.median(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_min'] = np.min(feature_value, axis=1).item()
-        feature_stats[f'{feature_name}_max'] = np.max(feature_value, axis=1).item()
-
-        return feature_stats
