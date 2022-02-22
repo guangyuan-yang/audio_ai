@@ -63,7 +63,7 @@ class AudioFeatures:
     @property
     def audio_signal(self):
         if self._audio_signal is None:
-            self._audio_signal = self.load_wav_file()[0]
+            self._audio_signal, _ = self.load_wav_file()
         return self._audio_signal
 
     @property
