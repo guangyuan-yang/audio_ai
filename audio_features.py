@@ -63,7 +63,7 @@ class AudioFeatures:
     @property
     def audio_signal(self):
         if self._audio_signal is None:
-            self._audio_signal, _ = self.load_wav_file()
+            self._audio_signal, _ = self.__load_wav_file()
         return self._audio_signal
 
     @property
@@ -144,7 +144,7 @@ class AudioFeatures:
     def hop_length(self):
         self._hop_length = None
 
-    def convert_mp3_to_wav(self):
+    def __convert_mp3_to_wav(self):
         import audioread
         import wave
         import contextlib
@@ -169,11 +169,11 @@ class AudioFeatures:
             sys.exit(1)
         return wav_file
 
-    def load_wav_file(self):
+    def __load_wav_file(self):
         if ".wav" in self.filename:
             wav_file = self.filename
         elif ".mp3" in self.filename:
-            wav_file = self.convert_mp3_to_wav()
+            wav_file = self.__convert_mp3_to_wav()
         else:
             raise Exception("File could not be loaded.")
 
